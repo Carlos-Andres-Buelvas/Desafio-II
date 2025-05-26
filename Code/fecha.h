@@ -27,9 +27,14 @@ public:
     Fecha sumarDias(int dias) const;
     int toEntero() const;
     bool esMayorQue(const Fecha& otra) const;
+    bool esMenorQue(const Fecha& otra) const;
+    bool esBisiesto() const;
+    int aDiaDelAnio() const;
 
 private:
     string obtenerDiaSemana() const;
 };
+
+Fecha getFechaSistema();
 
 #endif // FECHA_H

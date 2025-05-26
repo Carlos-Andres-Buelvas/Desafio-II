@@ -19,6 +19,7 @@ int Fecha::getDia() const { return dia; }
 int Fecha::getMes() const { return mes; }
 int Fecha::getAnio() const { return anio; }
 
+
 void Fecha::setDia(int d) { dia = d; }
 void Fecha::setMes(int m) { mes = m; }
 void Fecha::setAnio(int a) { anio = a; }
@@ -35,8 +36,33 @@ int Fecha::toEntero() const {
     return anio * 10000 + mes * 100 + dia;
 }
 
+int Fecha::aDiaDelAnio() const {
+    static const int diasPorMes[12] = {
+        31, 28, 31, 30, 31, 30,
+        31, 31, 30, 31, 30, 31
+    };
+
+    int suma = 0;
+    for (int i = 0; i < mes - 1; ++i) {
+        suma += diasPorMes[i];
+        if (i == 1 && esBisiesto())  // febrero
+            suma += 1;
+    }
+
+    suma += dia - 1;  // Día 1 de enero = 0
+    return suma;
+}
+
+bool Fecha::esBisiesto() const {
+    return (anio % 4 == 0 && anio % 100 != 0) || (anio % 400 == 0);
+}
+
 bool Fecha::esMayorQue(const Fecha& otra) const {
     return toEntero() > otra.toEntero();
+}
+
+bool Fecha::esMenorQue(const Fecha& otra) const {
+    return toEntero() < otra.toEntero();
 }
 
 string Fecha::obtenerDiaSemana() const {
@@ -67,3 +93,8 @@ Fecha Fecha::sumarDias(int dias) const {
     return Fecha(t.tm_mday, t.tm_mon + 1, t.tm_year + 1900);
 }
 
+Fecha getFechaSistema() {
+    time_t t = time(nullptr);
+    tm* now = localtime(&t);
+    return Fecha(now->tm_mday, now->tm_mon + 1, now->tm_year + 1900);
+}

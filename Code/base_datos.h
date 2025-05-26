@@ -10,7 +10,7 @@
 void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
                      Alojamiento*& alojamientos, int& cantAlojamientos,
                      Huesped*& huespedes, int& cantHuespedes,
-                     Reserva*& reservas, int& cantReservas);
+                     Reserva*& reservas, int& cantReservas, int& capacidad);
 
 void depurarReservas(Reserva*& reservas, int& cantidad, const Fecha& fechaCorte);
 

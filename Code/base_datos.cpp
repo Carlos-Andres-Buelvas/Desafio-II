@@ -16,7 +16,7 @@ using namespace std;
 void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
                      Alojamiento*& alojamientos, int& cantAlojamientos,
                      Huesped*& huespedes, int& cantHuespedes,
-                     Reserva*& reservas, int& cantReservas)
+                     Reserva*& reservas, int& cantReservas, int& capacidad)
 {
     // ---------- ANFITRIONES ----------
     ifstream archAnfit("anfitriones.txt");
@@ -32,24 +32,27 @@ void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
 
     while (getline(archAnfit, linea)) {
         stringstream ss(linea);
-        string doc, antigStr, puntStr;
+        string doc, nombre, clave, antigStr, puntStr;
         getline(ss, doc, ';');
+        getline(ss, nombre, ';');
         getline(ss, antigStr, ';');
         getline(ss, puntStr, ';');
+        getline(ss, clave, ';');
         int antig = stoi(antigStr);
         float punt = stof(puntStr);
+
+        Anfitrion nuevo(doc, nombre, antig, punt);
+        nuevo.setClave(clave);
 
         if (cantAnfitriones >= capAnfit) {
             capAnfit *= 2;
             Anfitrion* temp = new Anfitrion[capAnfit];
-            for (int i = 0; i < cantAnfitriones; ++i)
-                temp[i] = anfitriones[i];  // usa operador de copia
-
+            for (int i = 0; i < cantAnfitriones; ++i) temp[i] = anfitriones[i];
             delete[] anfitriones;
             anfitriones = temp;
         }
 
-        anfitriones[cantAnfitriones++] = Anfitrion(doc, antig, punt);
+        anfitriones[cantAnfitriones++] = nuevo;
     }
     archAnfit.close();
 
@@ -125,12 +128,17 @@ void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
 
     while (getline(archHuesp, linea)) {
         stringstream ss(linea);
-        string doc, antigStr, puntStr;
+        string doc, nombre, clave, antigStr, puntStr;
         getline(ss, doc, ';');
+        getline(ss, nombre, ';');
         getline(ss, antigStr, ';');
         getline(ss, puntStr, ';');
+        getline(ss, clave, ';');
         int antig = stoi(antigStr);
         float punt = stof(puntStr);
+
+        Huesped nuevo(doc, nombre, antig, punt);
+        nuevo.setClave(clave);
 
         if (cantHuespedes >= capHuesp) {
             capHuesp *= 2;
@@ -140,10 +148,9 @@ void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
             huespedes = temp;
         }
 
-        huespedes[cantHuespedes++] = Huesped(doc, antig, punt);
+        huespedes[cantHuespedes++] = nuevo;
     }
     archHuesp.close();
-
 
     // ---------- RESERVAS ----------
     ifstream archRes("reservas.txt");
@@ -172,7 +179,7 @@ void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
         getline(ss, nota, ';');
 
         int dur = stoi(durStr);
-        float monto = stof(montoStr);
+        int monto = stoi(montoStr);
         int d, m, a;
 
         sscanf(fechaIn.c_str(), "%d/%d/%d", &d, &m, &a);
@@ -214,6 +221,7 @@ void cargarBaseDatos(Anfitrion*& anfitriones, int& cantAnfitriones,
         if (cantReservas >= capRes) {
             capRes *= 2;
             Reserva* temp = new Reserva[capRes];
+            capacidad = capRes;
             for (int i = 0; i < cantReservas; ++i)
                 temp[i] = reservas[i];
             delete[] reservas;
@@ -323,12 +331,42 @@ void buscarAlojamientosDisponibles(Alojamiento* alojamientos, int cantA,
         cout << "No se encontraron alojamientos disponibles que cumplan con los criterios." << endl;
 }
 
+void sobrescribirArchivoReservas(Reserva* reservas, int cantReservas) {
+    ofstream archivo("reservas.txt");
+    if (!archivo.is_open()) {
+        cout << "[ERROR] No se pudo sobrescribir reservas.txt\n";
+        return;
+    }
+
+    // Encabezado opcional
+    archivo << "codigoReserva;codAlojamiento;docHuesped;fechaEntrada;duracion;metodoPago;fechaPago;monto;anotacion\n";
+
+    for (int i = 0; i < cantReservas; ++i) {
+        const Reserva& r = reservas[i];
+        archivo << r.getCodigo() << ";"
+                << r.getAlojamiento()->getCodigo() << ";"
+                << r.getHuesped()->getDocumento() << ";"
+                << setfill('0') << setw(2) << r.getFechaEntrada().getDia() << "/"
+                << setfill('0') << setw(2) << r.getFechaEntrada().getMes() << "/"
+                << r.getFechaEntrada().getAnio() << ";"
+                << r.getDuracion() << ";"
+                << r.getMetodoPago() << ";"
+                << setfill('0') << setw(2) << r.getFechaPago().getDia() << "/"
+                << setfill('0') << setw(2) << r.getFechaPago().getMes() << "/"
+                << r.getFechaPago().getAnio() << ";"
+                << (int)r.getMonto() << ";"
+                << r.getAnotacion() << "\n";
+    }
+
+    archivo.close();
+}
+
 void anularReservacion(const string& codigo, Huesped* huesped, Anfitrion* anfitrion,
                        Reserva*& reservas, int& cantReservas)
 {
     for (int i = 0; i < cantReservas; ++i) {
         if (reservas[i].getCodigo() == codigo) {
-            // Validación según tipo de usuario
+            // Validación de autorización
             bool autorizado = false;
 
             if (huesped && reservas[i].getHuesped()->getDocumento() == huesped->getDocumento()) {
@@ -342,11 +380,16 @@ void anularReservacion(const string& codigo, Huesped* huesped, Anfitrion* anfitr
                 return;
             }
 
-            // Eliminar reserva
+            // PASO CLAVE: eliminar también del arreglo interno del huésped
+            if (huesped)
+                huesped->eliminarReservaPorCodigo(codigo);
+
+            // Compactar arreglo global
             for (int j = i; j < cantReservas - 1; ++j)
                 reservas[j] = reservas[j + 1];
-
             cantReservas--;
+
+            sobrescribirArchivoReservas(reservas, cantReservas);
             cout << "Reservación anulada con éxito.\n";
             return;
         }
