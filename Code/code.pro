@@ -8,6 +8,7 @@ CONFIG += c++17 cmdline
 
 SOURCES += \
         base_datos.cpp \
+        controlador.cpp \
         fecha.cpp \
         main.cpp \
         reserva.cpp
@@ -19,5 +20,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     base_datos.h \
+    controlador.h \
     fecha.h \
     reserva.h
