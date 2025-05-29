@@ -3,50 +3,57 @@
 
 #include <string>
 #include "fecha.h"
-using namespace std;
 
-// Declaración adelantada
+// Declaraciones adelantadas
 class Huesped;
 class Alojamiento;
 
 class Reserva {
 private:
-    string codigo;
+    std::string codigo;
     Alojamiento* alojamiento;
     Huesped* huesped;
     Fecha fechaEntrada;
     int duracion;
-    string metodoPago;
+    std::string metodoPago;
     Fecha fechaPago;
     int monto;
-    char anotacion[1001];
+    std::string anotacion;
 
 public:
+    // Constructores
     Reserva();
-    Reserva(string cod, Alojamiento* alo, Huesped* h,
-            Fecha entrada, int dur, string metodo, Fecha pago, int monto, const string& nota);
+    Reserva(const std::string& cod, Alojamiento* alo, Huesped* h,
+            const Fecha& entrada, int dur, const std::string& metodo,
+            const Fecha& pago, int monto, const std::string& nota);
+    Reserva(const Reserva& otra); // Constructor de copia
+
+    // Operador de asignación
+    Reserva& operator=(const Reserva& otra);
 
     // Getters
-    string getCodigo() const;
-    string getMetodoPago() const;
-    int getDuracion() const;
-    Fecha getFechaEntrada() const;
+    std::string getCodigo() const;
     Alojamiento* getAlojamiento() const;
     Huesped* getHuesped() const;
+    Fecha getFechaEntrada() const;
+    int getDuracion() const;
+    std::string getMetodoPago() const;
     Fecha getFechaPago() const;
     int getMonto() const;
-    string getAnotacion() const;
-
+    std::string getAnotacion() const;
 
     // Métodos funcionales
     void mostrarComprobante() const;
     bool coincideCon(const Fecha& entrada, int duracion) const;
-
-    // Constructor de copia
-    Reserva(const Reserva& otra);
-
-    // Operador de asignación
-    Reserva& operator=(const Reserva& otra);
+    // Cargar desde archivo
+    static void cargarDesdeArchivo(const std::string& archivo,
+                                   Reserva*& arreglo,
+                                   int& cantidad,
+                                   int& capacidad,
+                                   Alojamiento* alojamientos,
+                                   int cantAlojamientos,
+                                   Huesped* huespedes,
+                                   int cantHuespedes);
 };
 
 #endif // RESERVA_H
