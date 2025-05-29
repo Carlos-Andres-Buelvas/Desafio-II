@@ -22,6 +22,9 @@ private:
     int cantHuespedes;
     int cantReservas;
     int capReservas;
+    int capAnfitriones;
+    int capHuespedes;
+    int capAlojamientos;
 
     // === MÉTODOS INTERNOS ===
 
