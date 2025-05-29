@@ -6,29 +6,36 @@
 #include <fstream>
 #include <sstream>
 
-// Constructor por defecto: inicializa la reserva vacía y punteros nulos
+// Constructor por defecto
 Reserva::Reserva()
     : codigo(""), alojamiento(nullptr), huesped(nullptr),
     fechaEntrada(), duracion(0), metodoPago(""),
-    fechaPago(), monto(0), anotacion("") {}
+    fechaPago(), monto(0), anotacion("")
+{
+}
 
-// Constructor parametrizado: crea una reserva con datos completos
+// Constructor parametrizado
 Reserva::Reserva(const std::string& cod, Alojamiento* alo, Huesped* h,
                  const Fecha& entrada, int dur, const std::string& metodo,
                  const Fecha& pago, int m, const std::string& nota)
     : codigo(cod), alojamiento(alo), huesped(h),
     fechaEntrada(entrada), duracion(dur), metodoPago(metodo),
-    fechaPago(pago), monto(m), anotacion(nota) {}
+    fechaPago(pago), monto(m)
+{
+    anotacion = nota;
+}
 
-// Constructor copia: copia todos los atributos, incluyendo punteros
+// Constructor de copia
 Reserva::Reserva(const Reserva& otra)
     : codigo(otra.codigo), alojamiento(otra.alojamiento),
     huesped(otra.huesped), fechaEntrada(otra.fechaEntrada),
     duracion(otra.duracion), metodoPago(otra.metodoPago),
-    fechaPago(otra.fechaPago), monto(otra.monto),
-    anotacion(otra.anotacion) {}
+    fechaPago(otra.fechaPago), monto(otra.monto)
+{
+    anotacion = otra.anotacion;
+}
 
-// Operador de asignación: copia los campos si no es autoasignación
+// Operador de asignación
 Reserva& Reserva::operator=(const Reserva& otra) {
     if (this != &otra) {
         codigo = otra.codigo;
@@ -44,7 +51,7 @@ Reserva& Reserva::operator=(const Reserva& otra) {
     return *this;
 }
 
-// Getters: permiten acceso seguro a los atributos privados
+// Getters
 std::string Reserva::getCodigo() const { return codigo; }
 Alojamiento* Reserva::getAlojamiento() const { return alojamiento; }
 Huesped* Reserva::getHuesped() const { return huesped; }
@@ -55,15 +62,17 @@ Fecha Reserva::getFechaPago() const { return fechaPago; }
 int Reserva::getMonto() const { return monto; }
 std::string Reserva::getAnotacion() const { return anotacion; }
 
-// Muestra en consola el comprobante detallado de la reserva
+// Mostrar comprobante
 void Reserva::mostrarComprobante() const {
     Fecha salida = fechaEntrada.sumarDias(duracion);
+    //Fecha hoySistema = getFechaSistema();
+
     std::cout << "------------------------------\n";
     std::cout << "=== COMPROBANTE DE RESERVA ===\n";
     std::cout << "Reserva: " << codigo << '\n';
     std::cout << "Nombre del huésped: " << (huesped ? huesped->getNombre() : "N/A") << '\n';
     std::cout << "Alojamiento: " << (alojamiento ? alojamiento->getCodigo() : "N/A") << '\n';
-    std::cout << "Ubicación: Antioquia, " << alojamiento->getMunicipio() << '\n';  // Se asume Antioquia
+    std::cout << "Ubicación: " << "Antioquia" << ", " << alojamiento->getMunicipio() << '\n';
     std::cout << "Duración: " << duracion << " noche(s)\n";
     std::cout << "Entrada: "; fechaEntrada.mostrarExtendido();
     std::cout << "Salida: "; salida.mostrarExtendido();
@@ -74,12 +83,12 @@ void Reserva::mostrarComprobante() const {
     std::cout << "------------------------------\n";
 }
 
-// Verifica si una reserva coincide con una entrada específica
+// Verifica coincidencia de reserva
 bool Reserva::coincideCon(const Fecha& entrada, int dur) const {
     return fechaEntrada.toEntero() == entrada.toEntero() && duracion == dur;
 }
 
-// Función auxiliar para encontrar un huésped por documento
+// Funciones auxiliares
 static Huesped* buscarHuesped(Huesped* huespedes, int cant, const std::string& doc) {
     for (int i = 0; i < cant; ++i)
         if (huespedes[i].getDocumento() == doc)
@@ -87,7 +96,6 @@ static Huesped* buscarHuesped(Huesped* huespedes, int cant, const std::string& d
     return nullptr;
 }
 
-// Función auxiliar para encontrar un alojamiento por código
 static Alojamiento* buscarAlojamiento(Alojamiento* alojamientos, int cant, const std::string& cod) {
     for (int i = 0; i < cant; ++i)
         if (alojamientos[i].getCodigo() == cod)
@@ -95,7 +103,6 @@ static Alojamiento* buscarAlojamiento(Alojamiento* alojamientos, int cant, const
     return nullptr;
 }
 
-// Carga reservas desde archivo .txt y las enlaza con huéspedes y alojamientos
 void Reserva::cargarDesdeArchivo(const std::string& archivo,
                                  Reserva*& arreglo,
                                  int& cantidad,
@@ -121,22 +128,20 @@ void Reserva::cargarDesdeArchivo(const std::string& archivo,
         std::stringstream ss(linea);
         std::string cod, codAloj, docHuesp, fechaIn, durStr, metodo, fechaPag, montoStr, nota;
 
-        // Lectura de campos delimitados por ;
         std::getline(ss, cod, ';'); std::getline(ss, codAloj, ';'); std::getline(ss, docHuesp, ';');
         std::getline(ss, fechaIn, ';'); std::getline(ss, durStr, ';'); std::getline(ss, metodo, ';');
         std::getline(ss, fechaPag, ';'); std::getline(ss, montoStr, ';'); std::getline(ss, nota, ';');
 
-        // Conversión de fechas
         int d, m, a;
         sscanf(fechaIn.c_str(), "%d/%d/%d", &d, &m, &a);
         Fecha entrada(d, m, a);
+
         sscanf(fechaPag.c_str(), "%d/%d/%d", &d, &m, &a);
         Fecha pago(d, m, a);
 
         int dur = std::stoi(durStr);
         int monto = std::stoi(montoStr);
 
-        // Buscar huésped y alojamiento
         Huesped* h = buscarHuesped(huespedes, cantHuespedes, docHuesp);
         Alojamiento* aObj = buscarAlojamiento(alojamientos, cantAlojamientos, codAloj);
 
@@ -145,13 +150,11 @@ void Reserva::cargarDesdeArchivo(const std::string& archivo,
             continue;
         }
 
-        // Validar conflicto de fechas
         if (h->hayConflicto(entrada, dur)) {
             std::cerr << "[WARN] Conflicto de fechas en reserva " << cod << " → omitida.\n";
             continue;
         }
 
-        // Redimensionar arreglo si está lleno
         if (cantidad >= capacidad) {
             int nuevaCap = capacidad * 2;
             Reserva* nuevoArr = new Reserva[nuevaCap];
@@ -162,10 +165,9 @@ void Reserva::cargarDesdeArchivo(const std::string& archivo,
             capacidad = nuevaCap;
         }
 
-        // Crear reserva válida y actualizar vínculos cruzados
         arreglo[cantidad] = Reserva(cod, aObj, h, entrada, dur, metodo, pago, monto, nota);
-        h->agregarReserva(&arreglo[cantidad]);          // Añadir a huésped
-        aObj->reservarDias(entrada, dur);               // Marcar fechas como ocupadas
+        h->agregarReserva(&arreglo[cantidad]);
+        aObj->reservarDias(entrada, dur);
         cantidad++;
     }
 

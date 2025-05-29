@@ -8,8 +8,10 @@ CONFIG += c++17 cmdline
 
 SOURCES += \
         alojamiento.cpp \
+        anfitrion.cpp \
         controlador.cpp \
         fecha.cpp \
+        huesped.cpp \
         main.cpp \
         reserva.cpp
 
@@ -20,6 +22,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     alojamiento.h \
+    anfitrion.h \
     controlador.h \
     fecha.h \
+    huesped.h \
     reserva.h
