@@ -1,23 +1,20 @@
 #include "anfitrion.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
-// Constructor por defecto
 Anfitrion::Anfitrion()
     : documento(""), nombre(""), clave(""), antiguedad(0), puntuacion(0.0f),
-    capacidadAlojamientos(5), cantidadAlojamientos(0) {
-    // Se inicializa el arreglo dinámico de alojamientos con capacidad inicial
+    capacidadAlojamientos(10), cantidadAlojamientos(0) {
     alojamientos = new Alojamiento*[capacidadAlojamientos];
 }
 
-// Constructor con parámetros
 Anfitrion::Anfitrion(const std::string& doc, const std::string& nom, int antig, float punt)
     : documento(doc), nombre(nom), clave(""), antiguedad(antig), puntuacion(punt),
-    capacidadAlojamientos(5), cantidadAlojamientos(0) {
-    // Se reserva espacio para el arreglo de punteros a alojamientos
+    capacidadAlojamientos(10), cantidadAlojamientos(0) {
     alojamientos = new Alojamiento*[capacidadAlojamientos];
 }
 
-// Constructor copia
 Anfitrion::Anfitrion(const Anfitrion& otro)
     : documento(otro.documento), nombre(otro.nombre), clave(otro.clave),
     antiguedad(otro.antiguedad), puntuacion(otro.puntuacion),
@@ -25,16 +22,14 @@ Anfitrion::Anfitrion(const Anfitrion& otro)
     cantidadAlojamientos(otro.cantidadAlojamientos) {
     alojamientos = new Alojamiento*[capacidadAlojamientos];
     for (int i = 0; i < cantidadAlojamientos; ++i) {
-        alojamientos[i] = otro.alojamientos[i];  // Copia superficial (mismo puntero)
+        alojamientos[i] = otro.alojamientos[i];  // Copia superficial
     }
 }
 
-// Operador de asignación (deep copy controlado)
 Anfitrion& Anfitrion::operator=(const Anfitrion& otro) {
-    if (this != &otro) {  // Previene autoasignación
-        delete[] alojamientos;  // Libera el arreglo anterior
+    if (this != &otro) {
+        delete[] alojamientos;
 
-        // Copia atributos básicos
         documento = otro.documento;
         nombre = otro.nombre;
         clave = otro.clave;
@@ -43,7 +38,6 @@ Anfitrion& Anfitrion::operator=(const Anfitrion& otro) {
         capacidadAlojamientos = otro.capacidadAlojamientos;
         cantidadAlojamientos = otro.cantidadAlojamientos;
 
-        // Copia punteros a alojamientos
         alojamientos = new Alojamiento*[capacidadAlojamientos];
         for (int i = 0; i < cantidadAlojamientos; ++i) {
             alojamientos[i] = otro.alojamientos[i];
@@ -52,61 +46,107 @@ Anfitrion& Anfitrion::operator=(const Anfitrion& otro) {
     return *this;
 }
 
-// Destructor
 Anfitrion::~Anfitrion() {
-    delete[] alojamientos;  // Libera el arreglo de alojamientos
+    delete[] alojamientos;
     alojamientos = nullptr;
 }
 
-// ----------- Getters -----------
-
+// Getters
 std::string Anfitrion::getDocumento() const { return documento; }
 std::string Anfitrion::getNombre() const { return nombre; }
 std::string Anfitrion::getClave() const { return clave; }
 int Anfitrion::getAntiguedad() const { return antiguedad; }
 float Anfitrion::getPuntuacion() const { return puntuacion; }
 
-// ----------- Setters -----------
-
+// Setters
 void Anfitrion::setDocumento(const std::string& doc) { documento = doc; }
 void Anfitrion::setClave(const std::string& c) { clave = c; }
 void Anfitrion::setAntiguedad(int antig) { antiguedad = antig; }
 void Anfitrion::setPuntuacion(float punt) { puntuacion = punt; }
 
-// ----------- Funcionalidad principal -----------
-
-// Agrega un nuevo alojamiento al arreglo del anfitrión
+// Función para agregar alojamiento
 void Anfitrion::agregarAlojamiento(Alojamiento* nuevo) {
-    // Si se supera la capacidad, se redimensiona el arreglo al doble
     if (cantidadAlojamientos >= capacidadAlojamientos) {
         int nuevaCapacidad = capacidadAlojamientos * 2;
         Alojamiento** nuevoArray = new Alojamiento*[nuevaCapacidad];
 
-        // Se copian los punteros actuales al nuevo arreglo
         for (int i = 0; i < cantidadAlojamientos; ++i)
             nuevoArray[i] = alojamientos[i];
 
-        // Se libera el arreglo antiguo y se reasigna
         delete[] alojamientos;
         alojamientos = nuevoArray;
         capacidadAlojamientos = nuevaCapacidad;
     }
 
-    // Se agrega el nuevo alojamiento
     alojamientos[cantidadAlojamientos++] = nuevo;
 }
 
-// Muestra los datos del anfitrión y sus alojamientos
+// Mostrar información del anfitrión
 void Anfitrion::mostrar() const {
-    std::cout << "Anfitrión: " << documento
+    std::cout << "\nAnfitrión: " << documento
               << " | Antigüedad: " << antiguedad << " meses"
               << " | Puntuación: " << puntuacion << std::endl;
 
     std::cout << "Alojamientos asignados: " << cantidadAlojamientos << std::endl;
 
-    // Se listan los alojamientos si existen
+
     for (int i = 0; i < cantidadAlojamientos; ++i) {
-        if (alojamientos[i])
-            alojamientos[i]->mostrar();  // Llama a la función mostrar() de cada alojamiento
+        for (int i = 0; i < cantidadAlojamientos; ++i) {
+            if (alojamientos[i]) {
+                std::cout << "puntero OK → ";
+                alojamientos[i]->mostrar();
+            } else {
+                std::cout << "[ERROR] puntero nulo\n";
+            }
+        }
     }
+}
+
+void Anfitrion::cargarDesdeArchivo(const std::string& archivo,
+                                   Anfitrion*& arreglo,
+                                   int& cantidad,
+                                   int& capacidad)
+{
+    std::ifstream in(archivo);
+    if (!in.is_open()) {
+        std::cerr << "[ERROR] No se pudo abrir " << archivo << "\n";
+        return;
+    }
+
+    std::string linea;
+    std::getline(in, linea); // Saltar encabezado
+    cantidad = 0;
+    capacidad = 10;
+    arreglo = new Anfitrion[capacidad];
+
+    while (std::getline(in, linea)) {
+        std::stringstream ss(linea);
+        std::string doc, nombre, clave, antigStr, puntStr;
+
+        std::getline(ss, doc, ';');
+        std::getline(ss, nombre, ';');
+        std::getline(ss, antigStr, ';');
+        std::getline(ss, puntStr, ';');
+        std::getline(ss, clave, ';');
+
+        int antig = std::stoi(antigStr);
+        float punt = std::stof(puntStr);
+
+        Anfitrion nuevo(doc, nombre, antig, punt);
+        nuevo.setClave(clave);
+
+        if (cantidad >= capacidad) {
+            capacidad *= 2;
+            Anfitrion* nuevoArr = new Anfitrion[capacidad];
+            for (int i = 0; i < cantidad; ++i)
+                nuevoArr[i] = arreglo[i];
+            delete[] arreglo;
+            arreglo = nuevoArr;
+        }
+
+        arreglo[cantidad++] = nuevo;
+    }
+
+    in.close();
+    std::cout << "[OK] Anfitriones cargados: " << cantidad << "\n";
 }
