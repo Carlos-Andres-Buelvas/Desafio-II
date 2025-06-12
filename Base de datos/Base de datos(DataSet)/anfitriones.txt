@@ -1,0 +1,10 @@
+documento;nombre;antiguedad;puntuacion;clave
+12345000;Ana Gómez;13;4.2;1234
+12345001;Luis Perez;41;4.1;1234
+12345002;Maria Torres;52;2.9;1234
+12345003;Carlos Ruiz;60;5.0;1234
+12345678;Juanita Rodriguez;13;3.5;1234
+12345005;Pedro Salas;26;4.9;1234
+12345006;Marta Vélez;51;2.9;1234
+12345007;Esteban Gil;49;4.9;1234
+12345008;Camila López;32;3.5;1234

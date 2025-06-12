@@ -1,0 +1,11 @@
+documento;nombre;antiguedad;puntuacion;clave
+17654321;George Zerpa;3;3.8;1234
+20000001;Laura Mesa;30;5.0;1234
+20000002;Daniel Gómez;37;4.1;1234
+20000003;Paola Restrepo;9;4.4;1234
+20000004;Mateo Zuluaga;5;4.1;1234
+20000005;Elena Ramírez;14;2.8;1234
+20000006;Oscar Duque;46;3.1;1234
+20000007;Lucía Quintero;29;4.4;1234
+20000008;Andrés Hoyos;40;1.8;1234
+20000009;Valentina Mora;30;4.6;1234
