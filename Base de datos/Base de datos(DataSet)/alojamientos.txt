@@ -1,0 +1,18 @@
+codigo;nombre;docAnfitrion;departamento;municipio;tipo;direccion;precio;amenidades
+ALOJ001;Alojamiento001;12345678;Antioquia;Copacabana;apartamento;Calle 1 #59-27;94702;0,1,1,1,0,0
+ALOJ002;Alojamiento002;12345678;Antioquia;Rionegro;casa;Calle 2 #18-35;217487;0,1,0,1,0,0
+ALOJ003;Alojamiento003;12345678;Antioquia;Medellin;apartamento;Calle 3 #46-2;193029;0,0,1,1,0,0
+ALOJ004;Alojamiento004;12345006;Antioquia;Medellin;casa;Calle 4 #31-75;149020;1,0,0,0,1,0
+ALOJ005;Alojamiento005;12345006;Antioquia;Medellin;casa;Calle 5 #81-63;125358;0,1,0,1,0,0
+ALOJ006;Alojamiento006;12345006;Antioquia;Medellin;casa;Calle 6 #73-19;138452;1,0,1,0,0,0
+ALOJ007;Alojamiento007;12345003;Antioquia;Medellin;apartamento;Calle 7 #27-60;116187;1,1,1,0,1,1
+ALOJ008;Alojamiento008;12345003;Antioquia;Medellin;apartamento;Calle 8 #87-16;100599;0,1,1,1,1,1
+ALOJ009;Alojamiento009;12345003;Antioquia;Medellin;casa;Calle 9 #23-77;123926;0,1,1,1,1,0
+ALOJ010;Alojamiento010;12345005;Antioquia;Medellin;casa;Calle 10 #81-84;178210;1,1,0,1,1,0
+ALOJ011;Alojamiento011;12345005;Antioquia;Medellin;apartamento;Calle 11 #6-93;87445;0,1,1,0,0,0
+ALOJ012;Alojamiento012;12345005;Antioquia;Medellin;apartamento;Calle 12 #4-4;193341;0,0,0,0,1,0
+ALOJ013;Alojamiento013;12345007;Antioquia;Medellin;apartamento;Calle 13 #46-89;240694;0,1,0,1,1,0
+ALOJ014;Alojamiento014;12345001;Antioquia;Medellin;apartamento;Calle 14 #10-86;102751;0,1,0,0,1,1
+ALOJ015;Alojamiento015;12345000;Antioquia;Medellin;apartamento;Calle 15 #95-99;90675;0,0,1,1,1,1
+ALOJ016;Alojamiento016;12345008;Antioquia;Medellin;apartamento;Calle 16 #34-96;176988;1,1,0,1,1,0
+ALOJ017;Alojamiento017;12345002;Antioquia;Medellin;apartamento;Calle 17 #81-13;190906;1,0,1,0,1,1

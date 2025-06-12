@@ -91,8 +91,8 @@ void Alojamiento::mostrar() const {
         std::cout << "[ERROR] Alojamiento con código vacío. Posible dato corrupto.\n";
         return;
     }
-    std::cout<<"[DEBUG] En mostrar(): puntero this = " << this << "\n";
-    std::cout << "[DEBUG] Entrando a mostrar() - Código: " << codigo << "\n";
+    //std::cout<<"[DEBUG] En mostrar(): puntero this = " << this << "\n";
+    //std::cout << "[DEBUG] Entrando a mostrar() - Código: " << codigo << "\n";
     std::cout << "Código: " << codigo << '\n'
               << "Nombre: " << nombre << '\n'
               << "Ubicación: " << departamento << ", " << municipio << '\n'
