@@ -13,22 +13,26 @@ using namespace std;
 #include "fecha.h"
 #include "controlador.h"
 
-int siguienteNumeroReserva; //modifique 1 a nada
+extern int totalIteraciones;
+extern int totalMemoria;
 
+int siguienteNumeroReserva;
+
+/**
+ * @brief Constructor del controlador principal del sistema.
+ *
+ * Inicializa punteros a arreglos de anfitriones, alojamientos, huéspedes y reservas.
+ * También reserva memoria inicial para el arreglo de reservas, y carga los datos
+ * desde los archivos correspondientes mediante las funciones estáticas de cada clase.
+ * Se establece el número consecutivo de reservas mediante el archivo "reservas.txt".
+ */
 Controlador::Controlador() {
     anfitriones = nullptr;
     alojamientos = nullptr;
     huespedes = nullptr;
     reservas = new Reserva[10];
-    /*
-    cantAnfitriones = cantAlojamientos = 0;
-    cantHuespedes = 0;
-    cantReservas = 300;
-    capReservas = 300;
-    capAnfitriones = 0;
-    capHuespedes = 0;
-    capAlojamientos = 1;
-    */
+    totalMemoria += sizeof(Reserva) * 10;
+
     siguienteNumeroReserva = obtenerSiguienteNumeroReserva();
 
     Anfitrion::cargarDesdeArchivo("anfitriones.txt", anfitriones, cantAnfitriones, capAnfitriones);
@@ -37,10 +41,19 @@ Controlador::Controlador() {
     Reserva::cargarDesdeArchivo("reservas.txt", reservas, cantReservas, capReservas, alojamientos, cantAlojamientos, huespedes, cantHuespedes);
 }
 
+/**
+ * @brief Punto de entrada del sistema. Llama al menú principal.
+ */
 void Controlador::iniciar(){
     menuPrincipal();
 }
 
+/**
+ * @brief Muestra el menú principal del sistema UdeAStay.
+ *
+ * Ofrece opciones para iniciar sesión o salir del programa.
+ * Maneja errores de entrada y excepciones estándar de forma robusta.
+ */
 void Controlador::menuPrincipal() {
     int opcion;
     do {
@@ -48,194 +61,315 @@ void Controlador::menuPrincipal() {
         cout << "1. Iniciar sesión\n";
         cout << "0. Salir\n";
         cout << "Opción: ";
-        cin >> opcion;
 
-        switch (opcion) {
-        case 1:
-            iniciarSesion();
-            break;
-        case 0:
-            cout << "\nGracias por usar el sistema. ¡Hasta luego!\n";
-            break;
-        default:
-            cout << "Opción inválida.\n";
+        // Validar entrada
+        if (!(cin >> opcion)) {
+            cin.clear(); // limpiar el error
+            cin.ignore(10000, '\n'); // descartar entrada inválida
+            cout << "[ERROR] Entrada inválida. Por favor ingrese un número.\n";
+            continue; // volver a mostrar el menú
+        }
+
+        try {
+            switch (opcion) {
+            case 1:
+                iniciarSesion();
+                break;
+            case 0:
+                cout << "\nGracias por usar el sistema. ¡Hasta luego!\n";
+                break;
+            default:
+                throw std::invalid_argument("Opción no válida.");
+            }
+        } catch (const std::invalid_argument& e) {
+            cout << "[ERROR] " << e.what() << "\n";
+        } catch (const std::exception& e) {
+            cout << "[ERROR inesperado] " << e.what() << "\n";
         }
 
     } while (opcion != 0);
 }
 
-void Controlador::iniciarSesion(){
+/**
+ * @brief Permite iniciar sesión como huésped o anfitrión.
+ *
+ * Solicita documento y clave, validando su formato. Si se encuentra
+ * coincidencia en los datos cargados, redirige al menú correspondiente
+ * (huésped o anfitrión).
+ */
+void Controlador::iniciarSesion() {
     string doc, claveIngresada;
-    cout << "\n--- Iniciar sesión ---\n";
-    cout << "Ingrese su número de documento: ";
-    cin >> doc;
-    cout << "Ingrese su clave: ";
-    cin >> claveIngresada;
 
-    for (int i = 0; i < cantHuespedes; ++i) {
-        if (huespedes[i].getDocumento() == doc && huespedes[i].getClave() == claveIngresada) {
-            mostrarMenuHuesped(&huespedes[i]);
-            return;
+    try {
+        cout << "\n--- Iniciar sesión ---\n";
+
+        cout << "Ingrese su número de documento: ";
+        if (!(cin >> doc)) {
+            throw std::runtime_error("Error al leer el documento.");
         }
-    }
 
-    for (int i = 0; i < cantAnfitriones; ++i) {
-        if (anfitriones[i].getDocumento() == doc && anfitriones[i].getClave() == claveIngresada) {
-            mostrarMenuAnfitrion(&anfitriones[i]);
-            return;
+        // Validación: el documento debe contener solo dígitos
+        for (char c : doc) {
+            if (!isdigit(c)) {
+                throw std::invalid_argument("El documento debe contener solo números.");
+            }
         }
-    }
 
-    cout << "Documento o clave incorrectos.\n";
+        cout << "Ingrese su clave: ";
+        if (!(cin >> claveIngresada)) {
+            throw std::runtime_error("Error al leer la clave.");
+        }
+
+        // Buscar en huéspedes
+        for (int i = 0; i < cantHuespedes; ++i) {
+            totalIteraciones++;
+            if (huespedes[i].getDocumento() == doc && huespedes[i].getClave() == claveIngresada) {
+                mostrarMenuHuesped(&huespedes[i]);
+                return;
+            }
+        }
+
+        // Buscar en anfitriones
+        for (int i = 0; i < cantAnfitriones; ++i) {
+            totalIteraciones++;
+            if (anfitriones[i].getDocumento() == doc && anfitriones[i].getClave() == claveIngresada) {
+                mostrarMenuAnfitrion(&anfitriones[i]);
+                return;
+            }
+        }
+
+        cout << "[ERROR] Documento o clave incorrectos.\n";
+
+    } catch (const std::invalid_argument& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "[ENTRADA INVÁLIDA] " << e.what() << "\n";
+    } catch (const std::exception& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "[EXCEPCIÓN] " << e.what() << "\n";
+    }
 }
 
-void Controlador::mostrarMenuHuesped(Huesped* h){
+/**
+ * @brief Muestra el menú principal para un huésped autenticado.
+ *
+ * Permite al huésped realizar las siguientes acciones:
+ * 1. Buscar alojamientos disponibles con filtros.
+ * 2. Reservar alojamiento mediante código.
+ * 3. Ver su antigüedad y puntuación.
+ * 4. Visualizar y anular una reservación activa.
+ * 0. Cerrar sesión y volver al menú principal.
+ *
+ * @param h Puntero al objeto Huesped que ha iniciado sesión.
+ */
+void Controlador::mostrarMenuHuesped(Huesped* h) {
     int opcion;
-    do {
-        cout << "\n=== MENÚ HUÉSPED ===\n";
-        cout << "Bienvenido, " << h->getNombre() << " (documento: " << h->getDocumento() << ")\n";
-        cout << "1. Buscar alojamientos disponibles\n";
-        cout << "2. Reservar alojamiento\n";
-        cout << "3. Ver antigüedad y puntuación\n";
-        cout << "4. Mostrar y/o anular una reservacion\n";
-        cout << "0. Cerrar sesión\n";
-        cout << "Opción: ";
-        cin >> opcion;
 
-        switch (opcion) {
-        case 1:
-            buscarYReservarAlojamiento(h);
-            break;
-        case 2:
-            reservarAlojamiento(h);
-            break;
-        case 3:
-            cout << "Antigüedad: " << h->getAntiguedad() << " meses\n";
-            cout << "Puntuación: " << h->getPuntuacion() << "/5.0\n";
-            break;
-        case 4: {
-            cout << "\n--- Reservaciones activas ---\n";
-            int seleccionables[cantReservas], totalMostrar = 0;
+    try {
+        do {
+            cout << "\n=== MENÚ HUÉSPED ===\n";
+            cout << "Bienvenido, " << h->getNombre() << " (documento: " << h->getDocumento() << ")\n";
+            cout << "1. Buscar alojamientos disponibles\n";
+            cout << "2. Reservar alojamiento\n";
+            cout << "3. Ver antigüedad y puntuación\n";
+            cout << "4. Mostrar y/o anular una reservación\n";
+            cout << "0. Cerrar sesión\n";
+            cout << "Opción: ";
 
-            for (int i = 0; i < cantReservas; ++i) {
-                if (reservas[i].getHuesped()->getDocumento() == h->getDocumento()) {
-                    cout << (totalMostrar + 1) << ". ";
-                    reservas[i].mostrarComprobante();
-                    seleccionables[totalMostrar++] = i;
-                }
+            if (!(cin >> opcion)) {
+                throw std::invalid_argument("Entrada no válida. Se esperaba un número.");
             }
 
-            if (totalMostrar == 0) {
-                cout << "No tiene reservaciones activas.\n";
+            switch (opcion) {
+            case 1:
+                buscarYReservarAlojamiento(h);
+                break;
+            case 2:
+                reservarAlojamiento(h);
+                break;
+            case 3:
+                cout << "Antigüedad: " << h->getAntiguedad() << " meses\n";
+                cout << "Puntuación: " << h->getPuntuacion() << "/5.0\n";
+                break;
+            case 4: {
+                cout << "\n--- Reservaciones activas ---\n";
+                int seleccionables[cantReservas], totalMostrar = 0;
+
+                for (int i = 0; i < cantReservas; ++i) {
+                    totalIteraciones++;
+                    if (reservas[i].getHuesped()->getDocumento() == h->getDocumento()) {
+                        cout << (totalMostrar + 1) << ". ";
+                        reservas[i].mostrarComprobante();
+                        seleccionables[totalMostrar++] = i;
+                    }
+                }
+
+                if (totalMostrar == 0) {
+                    cout << "No tiene reservaciones activas.\n";
+                    break;
+                }
+
+                int eleccion;
+                cout << "Seleccione el número de la reserva a anular (0 para cancelar): ";
+
+                if (!(cin >> eleccion)) {
+                    throw std::invalid_argument("Entrada no válida al seleccionar reserva.");
+                }
+
+                if (eleccion < 1 || eleccion > totalMostrar) {
+                    cout << "Selección cancelada o fuera de rango.\n";
+                    break;
+                }
+
+                int idx = seleccionables[eleccion - 1];
+                Reserva* r = &reservas[idx];
+                string codigo = r->getCodigo();
+                anularReservacion(codigo, h, nullptr);
+                break;
+            }
+            case 0:
+                cout << "Sesión finalizada.\n";
+                break;
+            default:
+                cout << "Opción inválida.\n";
+            }
+
+        } while (opcion != 0);
+
+    } catch (const std::exception& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "[EXCEPCIÓN] " << e.what() << "\n";
+    }
+}
+
+/**
+ * @brief Muestra el menú principal para un anfitrión autenticado.
+ *
+ * Permite al anfitrión realizar las siguientes acciones:
+ * 1. Visualizar todos los alojamientos que administra.
+ * 2. Consultar su antigüedad y puntuación.
+ * 3. Anular reservas asociadas a sus alojamientos.
+ * 4. Ver todas las reservas dentro de un rango de fechas.
+ * 5. Depurar reservas antiguas según una fecha de corte.
+ * 6. Mostrar el historial completo de reservas.
+ * 0. Cerrar sesión y volver al menú principal.
+ *
+ * @param a Puntero al objeto Anfitrion que ha iniciado sesión.
+ */
+void Controlador::mostrarMenuAnfitrion(Anfitrion* a) {
+    int opcion;
+
+    try {
+        do {
+            cout << "\n=== MENÚ ANFITRIÓN ===\n";
+            cout << "Bienvenido, " << a->getNombre() << " (documento: " << a->getDocumento() << ")\n";
+            cout << "1. Mostrar mis alojamientos\n";
+            cout << "2. Ver antigüedad y puntuación\n";
+            cout << "3. Anular una reservación asociada a mis alojamientos\n";
+            cout << "4. Consultar reservaciones en rango de fechas\n";
+            cout << "5. Actualizar histórico de reservas\n";
+            cout << "6. Mostrar histórico de reservas\n";
+            cout << "0. Cerrar sesión\n";
+            cout << "Opción: ";
+
+            if (!(cin >> opcion)) {
+                throw std::invalid_argument("Entrada inválida. Se esperaba un número.");
+            }
+
+            switch (opcion) {
+            case 1:
+                a->mostrar();
+                break;
+
+            case 2:
+                cout << "\nAntigüedad: " << a->getAntiguedad() << " meses\n";
+                cout << "Puntuación: " << a->getPuntuacion() << "/5.0\n";
+                break;
+
+            case 3: {
+                string cod;
+                cout << "Código de la reservación a anular: ";
+                cin >> cod;
+                anularReservacion(cod, nullptr, a);
                 break;
             }
 
-            int eleccion;
-            cout << "Seleccione el número de la reserva a anular (0 para cancelar): ";
-            cin >> eleccion;
-            if (eleccion < 1 || eleccion > totalMostrar) break;
+            case 4: {
+                int d1, m1, a1, d2, m2, a2;
+                cout << "Ingrese fecha inicial (D M A): ";
+                if (!(cin >> d1 >> m1 >> a1)) throw std::invalid_argument("Fecha inicial inválida.");
 
-            int idx = seleccionables[eleccion - 1];
-            Reserva* r = &reservas[idx];              // Apunta antes de modificar nada
-            string codigo = r->getCodigo();           // Guarda el código
-            anularReservacion(codigo, h, nullptr);    // Anula por código, ya no usas índices viejos
-            break;
-        }
-        case 0:
-            cout << "Sesión finalizada.\n";
-            break;
-        default:
-            cout << "Opción inválida.\n";
-        }
-    } while (opcion != 0);
-}
+                cout << "Ingrese fecha final (D M A): ";
+                if (!(cin >> d2 >> m2 >> a2)) throw std::invalid_argument("Fecha final inválida.");
 
-void Controlador::mostrarMenuAnfitrion(Anfitrion* a){
-    int opcion;
-    do {
-        cout << "\n=== MENÚ ANFITRIÓN ===\n";
-        cout << "Bienvenido, " << a->getNombre() << " (documento: " << a->getDocumento() << ")\n";
-        cout << "1. Mostrar mis alojamientos\n";
-        cout << "2. Ver antigüedad y puntuación\n";
-        cout << "3. Anular una reservación asociada a mis alojamientos\n";
-        cout << "4. Consultar reservaciones en rango de fechas\n";
-        cout << "5. Actualizar histórico de reservas\n";
-        cout << "6. Mostrar histórico de reservas\n";
-        cout << "0. Cerrar sesión\n";
-        cout << "Opción: ";
-        cin >> opcion;
+                Fecha ini(d1, m1, a1), fin(d2, m2, a2);
 
-        switch (opcion) {
-        case 1:
-            a->mostrar();
-            break;
-        case 2:
-            cout << "\nAntigüedad: " << a->getAntiguedad() << " meses\n";
-            cout << "Puntuación: " << a->getPuntuacion() << "/5.0\n";
-            break;
-        case 3: {
-            string cod;
-            cout << "Código de la reservación a anular: ";
-            cin >> cod;
-            anularReservacion(cod, nullptr, a);
-            break;
-        }
-        case 4: {
-            int d1, m1, a1, d2, m2, a2;
-            cout << "Ingrese fecha inicial (D M A): ";
-            cin >> d1 >> m1 >> a1;
-            cout << "Ingrese fecha final (D M A): ";
-            cin >> d2 >> m2 >> a2;
-            Fecha ini(d1, m1, a1), fin(d2, m2, a2);
-
-            int total = 0;
-            for (int i = 0; i < cantReservas; ++i) {
-                Reserva& r = reservas[i];
-                if (r.getAlojamiento()->getAnfitrion() == a &&
-                    r.getFechaEntrada().esMayorQue(ini) &&
-                    r.getFechaEntrada().esMenorQue(fin)) {
-                    cout << "\n[" << ++total << "] ";
-                    r.mostrarComprobante();
+                int total = 0;
+                for (int i = 0; i < cantReservas; ++i) {
+                    totalIteraciones++;
+                    Reserva& r = reservas[i];
+                    if (r.getAlojamiento()->getAnfitrion() == a &&
+                        r.getFechaEntrada().esMayorQue(ini) &&
+                        r.getFechaEntrada().esMenorQue(fin)) {
+                        cout << "\n[" << ++total << "] ";
+                        r.mostrarComprobante();
+                    }
                 }
+
+                if (total == 0)
+                    cout << "No se encontraron reservaciones en ese rango.\n";
+
+                break;
             }
 
-            if (total == 0)
-                cout << "No se encontraron reservaciones en ese rango.\n";
+            case 5: {
+                int d, m, a_;
+                cout << "--- Actualizar histórico ---\n";
+                cout << "Ingrese fecha de corte (D M A): ";
+                if (!(cin >> d >> m >> a_)) throw std::invalid_argument("Fecha inválida.");
 
-            break;
-        }
-        case 5: {
-            int d, m, a;
-            cout << "--- Actualizar histórico ---\n";
-            cout << "Ingrese fecha de corte (D M A): ";
-            cin >> d >> m >> a;
-            Fecha fechaCorte(d, m, a);
+                Fecha fechaCorte(d, m, a_);
 
-            // Ejecutar depuración
-            depurarReservas(fechaCorte);
+                depurarReservas(fechaCorte);
+                sobrescribirArchivoReservas();
 
-            // Actualizar archivo reservas.txt después de depurar
-            sobrescribirArchivoReservas();
+                cout << "Histórico actualizado. Solo se conservaron reservas desde la fecha indicada.\n";
+                break;
+            }
 
-            cout << "Histórico actualizado. Solo se conservaron reservas desde la fecha indicada.\n";
-            break;
-        }
-        case 6:
-            this->mostrarHistorico();
-            break;
-        case 0:
-            cout << "Sesión finalizada.\n";
-            break;
-        default:
-            cout << "Opción inválida.\n";
-        }
-    } while (opcion != 0);
+            case 6:
+                this->mostrarHistorico();
+                break;
+
+            case 0:
+                cout << "Sesión finalizada.\n";
+                break;
+
+            default:
+                cout << "Opción inválida.\n";
+            }
+
+        } while (opcion != 0);
+
+    } catch (const std::exception& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "\n[EXCEPCIÓN] " << e.what() << "\n";
+        // Reintentar
+        mostrarMenuAnfitrion(a);
+    }
 }
 
+/**
+ * @brief Redimensiona dinámicamente el arreglo de reservas cuando se alcanza la capacidad máxima.
+ */
 void Controlador::asegurarCapacidadReservas() {
     if (cantReservas >= capReservas) {
         capReservas *= 2;
         Reserva* nuevo = new Reserva[capReservas];
+        totalMemoria += sizeof(Reserva) * capReservas;
         for (int i = 0; i < cantReservas; ++i)
             nuevo[i] = reservas[i];
         delete[] reservas;
@@ -247,246 +381,263 @@ void Controlador::asegurarCapacidadReservas() {
     }
 }
 
-void Controlador::buscarYReservarAlojamiento(Huesped* h)
-{
-    cout << "--- Buscar y reservar alojamiento ---\n";
-    string municipio;
-    int d, m, a, noches;
+/**
+ * @brief Permite al huésped buscar alojamientos disponibles aplicando filtros opcionales
+ *        y reservar el que elija directamente desde un listado.
+ *
+ * Se validan los siguientes criterios:
+ * - Municipio (obligatorio).
+ * - Fecha de entrada (dentro de los próximos 12 meses).
+ * - Duración de la estadía.
+ * - Filtros opcionales de precio máximo y puntuación mínima del anfitrión.
+ *
+ * Luego, el huésped puede seleccionar un alojamiento y completar la reserva
+ * con método de pago y anotación. Se verifica que no haya conflictos de fechas.
+ *
+ * @param h Puntero al huésped que está realizando la operación.
+ */
+void Controlador::buscarYReservarAlojamiento(Huesped* h) {
+    try {
+        cout << "--- Buscar y reservar alojamiento ---\n";
+        string municipio;
+        int d, m, a, noches;
 
-    cout << "Municipio: ";
-    cin >> ws;
-    getline(cin, municipio);
+        cout << "Municipio: ";
+        cin >> ws;
+        getline(cin, municipio);
 
-    cout << "Fecha de entrada (D M A): ";
-    cin >> d >> m >> a;
-    cout << "Duración (noches): ";
-    cin >> noches;
-    Fecha entrada(d, m, a);
+        cout << "Fecha de entrada (D M A): ";
+        if (!(cin >> d >> m >> a)) throw std::invalid_argument("Fecha inválida.");
+        cout << "Duración (noches): ";
+        if (!(cin >> noches)) throw std::invalid_argument("Duración inválida.");
 
-    Fecha hoy = getFechaSistema();
-    Fecha maxPermitida = hoy.sumarDias(365);
+        Fecha entrada(d, m, a);
+        Fecha hoy = getFechaSistema();
+        Fecha maxPermitida = hoy.sumarDias(365);
 
-    if (entrada.esMenorQue(hoy) || entrada.esMayorQue(maxPermitida)) {
-        cout << "La fecha de entrada debe estar entre hoy y dentro de 12 meses máximo.\n";
-        return;
-    }
-
-    // Filtros opcionales
-    char aplicarFiltro;
-    float precioMax = -1, puntMin = -1;
-    cout << "¿Desea aplicar filtros de precio y puntuación? (s/n): ";
-    cin >> aplicarFiltro;
-    if (aplicarFiltro=='s' || aplicarFiltro=='S') {
-        cout << "Ingrese precio máximo por noche (-1 si no desea aplicar): ";
-        cin >> precioMax;
-        cout << "Ingrese puntuación mínima del anfitrión (-1 si no desea aplicar): ";
-        cin >> puntMin;
-    }
-
-    // Recolectar disponibles
-    const int MAX_DISPONIBLES = cantReservas;
-    Alojamiento* disponibles[MAX_DISPONIBLES];
-    int cantDisponibles = 0;
-    for (int i = 0; i < cantAlojamientos; ++i) {
-        Alojamiento& a = alojamientos[i];
-
-        if (a.getMunicipio() == municipio &&
-            a.estaDisponible(entrada, noches) &&
-            (precioMax < 0 || a.getPrecioNoche() <= precioMax) &&
-            (puntMin < 0 || a.getAnfitrion()->getPuntuacion() >= puntMin))
-        {
-            if (cantDisponibles < MAX_DISPONIBLES)
-                disponibles[cantDisponibles++] = &a;
+        if (entrada.esMenorQue(hoy) || entrada.esMayorQue(maxPermitida)) {
+            cout << "La fecha de entrada debe estar entre hoy y dentro de 12 meses máximo.\n";
+            return;
         }
+
+        // Filtros opcionales
+        char aplicarFiltro;
+        float precioMax = -1, puntMin = -1;
+        cout << "¿Desea aplicar filtros de precio y puntuación? (s/n): ";
+        cin >> aplicarFiltro;
+        if (aplicarFiltro == 's' || aplicarFiltro == 'S') {
+            cout << "Ingrese precio máximo por noche (-1 si no desea aplicar): ";
+            if (!(cin >> precioMax)) throw std::invalid_argument("Precio inválido.");
+            cout << "Ingrese puntuación mínima del anfitrión (-1 si no desea aplicar): ";
+            if (!(cin >> puntMin)) throw std::invalid_argument("Puntuación inválida.");
+        }
+
+        // Recolectar alojamientos disponibles
+        const int MAX_DISPONIBLES = cantReservas;
+        Alojamiento* disponibles[MAX_DISPONIBLES];
+        int cantDisponibles = 0;
+
+        for (int i = 0; i < cantAlojamientos; ++i) {
+            totalIteraciones++;
+            Alojamiento& a = alojamientos[i];
+
+            if (a.getMunicipio() == municipio &&
+                a.estaDisponible(entrada, noches) &&
+                (precioMax < 0 || a.getPrecioNoche() <= precioMax) &&
+                (puntMin < 0 || a.getAnfitrion()->getPuntuacion() >= puntMin)) {
+                if (cantDisponibles < MAX_DISPONIBLES)
+                    disponibles[cantDisponibles++] = &a;
+            }
+        }
+
+        if (cantDisponibles == 0) {
+            cout << "No hay alojamientos disponibles.\n";
+            return;
+        }
+
+        // Mostrar lista
+        cout << "\n=== ALOJAMIENTOS DISPONIBLES ===\n";
+        for (int i = 0; i < cantDisponibles; ++i) {
+            totalIteraciones++;
+            cout << i + 1 << ".\n";
+            disponibles[i]->mostrar();
+            cout << "Puntuación del anfitrión: "
+                 << disponibles[i]->getAnfitrion()->getPuntuacion()
+                 << " / 5.0\n---------------------\n";
+        }
+
+        int opcion;
+        cout << "Seleccione número (0 cancelar): ";
+        if (!(cin >> opcion)) throw std::invalid_argument("Opción inválida.");
+        if (opcion < 1 || opcion > cantDisponibles) {
+            cout << "Reserva cancelada.\n";
+            return;
+        }
+
+        Alojamiento* aloj = disponibles[opcion - 1];
+
+        // Método de pago
+        string metodo;
+        cout << "Metodo de pago\n1. PSE\n2. TCredito\nOpción: ";
+        cin >> ws;
+        getline(cin, metodo);
+        if (metodo != "1" && metodo != "2") {
+            cout << "Opción inválida. Reserva cancelada.\n";
+            return;
+        }
+        metodo = (metodo == "1") ? "PSE" : "TCredito";
+
+        // Anotación
+        string nota;
+        cout << "Ingrese anotación (max 1000 chars): ";
+        cin >> ws;
+        getline(cin, nota);
+
+        extern int siguienteNumeroReserva;
+        std::ostringstream oss;
+        oss << "RSV" << std::setw(3) << std::setfill('0') << siguienteNumeroReserva++;
+        string codigo = oss.str();
+        Fecha fechaPago = getFechaSistema();
+        float monto = noches * aloj->getPrecioNoche();
+
+        if (h->hayConflicto(entrada, noches)) {
+            cout << "Conflicto de fechas. No se realizó la reserva.\n";
+            return;
+        }
+
+        asegurarCapacidadReservas();
+
+        reservas[cantReservas] = Reserva(codigo, aloj, h, entrada, noches, metodo, fechaPago, monto, nota);
+        Reserva* ptrReserva = &reservas[cantReservas++];
+        h->agregarReserva(ptrReserva);
+        aloj->reservarDias(entrada, noches);
+        guardarReservaIndividual(*ptrReserva);
+
+        ptrReserva->mostrarComprobante();
+
+    } catch (const std::exception& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "\n[ERROR] " << e.what() << "\n";
+        cout << "Por favor, intente de nuevo.\n";
+        buscarYReservarAlojamiento(h);
     }
-
-    if (cantDisponibles == 0) {
-        cout << "No hay alojamientos disponibles.\n";
-        return;
-    }
-
-    // Mostrar lista y elegir
-    cout << "\n=== ALOJAMIENTOS DISPONIBLES ===\n";
-    for (int i = 0; i < cantDisponibles; ++i) {
-        cout << i + 1 << ".\n";
-        disponibles[i]->mostrar();
-        cout << "Puntuación del anfitrión: "
-             << disponibles[i]->getAnfitrion()->getPuntuacion()
-             << " / 5.0\n---------------------\n";
-    }
-
-    int opcion;
-    cout << "Seleccione número (0 cancelar): ";
-    cin >> opcion;
-    if (opcion < 1 || opcion > cantDisponibles) {
-        cout << "Reserva cancelada.\n";
-        return;
-    }
-
-    Alojamiento* aloj = disponibles[opcion - 1];
-
-    // Pedir pago
-    string metodo;
-    cout << "Metodo de pago" << "\n";
-    cout << "1. PSE" << "\n";
-    cout << "2. TCredito" << "\n";
-    cout << "Opción: ";
-    cin >> ws;
-    getline(cin, metodo);
-    if (metodo != "1" && metodo != "2"){
-        cout << "Opción inválida. Reserva cancelada.\n";
-        return;
-    }
-    if (metodo == "1"){
-        metodo = "PSE";
-    } else{
-        metodo = "TCredito";
-    }
-
-    // Pedir anotación
-    string nota;
-    cout << "Ingrese anotación (max 1000 chars): ";
-    cin >> ws;
-    getline(cin, nota);
-
-    // ... justo antes de crear la Reserva
-    extern int siguienteNumeroReserva; // si está fuera del main()
-    std::ostringstream oss;
-    oss << "RSV" << std::setw(3) << std::setfill('0') << siguienteNumeroReserva++;
-    string codigo = oss.str();
-    Fecha fechaPago = getFechaSistema();
-    float monto = noches * aloj->getPrecioNoche();
-
-    // Verificar conflicto antes de crear la reserva
-    if (h->hayConflicto(entrada, noches)) {
-        cout << "Conflicto de fechas. No se realizó la reserva.\n";
-        return;
-    }
-
-    // Redimensionar arreglo si hace falta
-    void asegurarCapacidadReservas();
-
-    // Crear y guardar la reserva
-    reservas[cantReservas] = Reserva(codigo, aloj, h, entrada, noches, metodo, fechaPago, monto, nota);
-    Reserva* ptrReserva = &reservas[cantReservas];
-    ++cantReservas;
-
-    h->agregarReserva(ptrReserva);
-    aloj->reservarDias(entrada, noches);
-    this->guardarReservaIndividual(*ptrReserva);
-
-    // Mostrar comprobante usando método encapsulado
-    ptrReserva->mostrarComprobante();
 }
 
-void Controlador::reservarAlojamiento(Huesped* h)
-{
-    cout << "--- Reservar alojamiento ---\n";
-    string cod;
-    int d, m, a, dur;
-    cout << "Código del alojamiento: ";
-    cin >> cod;
-    cout << "Fecha entrada (D M A): ";
-    cin >> d >> m >> a;
-    cout << "Duración (noches): ";
-    cin >> dur;
-    Fecha entrada(d, m, a);
+/**
+ * @brief Permite al huésped crear una reserva directa si conoce el código del alojamiento.
+ *
+ * Solicita los siguientes datos:
+ * - Código del alojamiento.
+ * - Fecha de entrada (entre hoy y los próximos 12 meses).
+ * - Duración en noches.
+ * - Método de pago.
+ * - Anotación adicional.
+ *
+ * Se verifica disponibilidad del alojamiento, conflicto de fechas con otras reservas
+ * del huésped, y se guarda la reserva tanto en memoria como en el archivo de texto.
+ *
+ * @param h Puntero al huésped que realiza la reserva.
+ */
+void Controlador::reservarAlojamiento(Huesped* h) {
+    try {
+        cout << "--- Reservar alojamiento ---\n";
+        string cod;
+        int d, m, a, dur;
 
-    Fecha hoy = getFechaSistema();
-    Fecha maxPermitida = hoy.sumarDias(365);
+        cout << "Código del alojamiento: ";
+        cin >> ws;
+        getline(cin, cod);
 
-    if (entrada.esMenorQue(hoy) || entrada.esMayorQue(maxPermitida)) {
-        cout << "La fecha de entrada debe estar entre hoy y dentro de 12 meses máximo.\n";
-        return;
-    }
+        cout << "Fecha entrada (D M A): ";
+        if (!(cin >> d >> m >> a)) throw std::invalid_argument("Fecha inválida.");
+        cout << "Duración (noches): ";
+        if (!(cin >> dur)) throw std::invalid_argument("Duración inválida.");
 
-    Alojamiento* aloj = nullptr;
-    for (int i = 0; i < cantAlojamientos; ++i) {
-        if (alojamientos[i].getCodigo() == cod) {
-            aloj = &alojamientos[i];
-            break;
+        Fecha entrada(d, m, a);
+        Fecha hoy = getFechaSistema();
+        Fecha maxPermitida = hoy.sumarDias(365);
+
+        if (entrada.esMenorQue(hoy) || entrada.esMayorQue(maxPermitida)) {
+            cout << "La fecha debe estar entre hoy y 12 meses hacia adelante.\n";
+            return;
         }
+
+        // Buscar alojamiento
+        Alojamiento* aloj = nullptr;
+        for (int i = 0; i < cantAlojamientos; ++i) {
+            totalIteraciones++;
+            if (alojamientos[i].getCodigo() == cod) {
+                aloj = &alojamientos[i];
+                break;
+            }
+        }
+
+        if (!aloj) {
+            cout << "Alojamiento no encontrado.\n";
+            return;
+        }
+
+        if (!aloj->estaDisponible(entrada, dur)) {
+            cout << "El alojamiento no está disponible.\n";
+            return;
+        }
+
+        // Método de pago
+        string metodo;
+        cout << "Método de pago\n1. PSE\n2. TCredito\nOpción: ";
+        cin >> ws;
+        getline(cin, metodo);
+        if (metodo != "1" && metodo != "2") {
+            cout << "Opción inválida. Reserva cancelada.\n";
+            return;
+        }
+        metodo = (metodo == "1") ? "PSE" : "TCredito";
+
+        // Anotación
+        string nota;
+        cout << "Ingrese anotación (máx 1000 chars): ";
+        cin >> ws;
+        getline(cin, nota);
+
+        extern int siguienteNumeroReserva;
+        std::ostringstream oss;
+        oss << "RSV" << std::setw(3) << std::setfill('0') << siguienteNumeroReserva++;
+        string codigo = oss.str();
+        Fecha fechaPago = getFechaSistema();
+        float monto = dur * aloj->getPrecioNoche();
+
+        // Validar conflicto de fechas
+        if (h->hayConflicto(entrada, dur)) {
+            cout << "El huésped ya tiene una reserva en esas fechas.\n";
+            return;
+        }
+
+        // Redimensionar si es necesario
+        asegurarCapacidadReservas();
+
+        // Crear y almacenar
+        reservas[cantReservas] = Reserva(codigo, aloj, h, entrada, dur, metodo, fechaPago, monto, nota);
+        Reserva* ptr = &reservas[cantReservas++];
+        h->agregarReserva(ptr);
+        aloj->reservarDias(entrada, dur);
+        guardarReservaIndividual(*ptr);
+
+        ptr->mostrarComprobante();
+
+    } catch (const std::exception& e) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "\n[ERROR] " << e.what() << "\n";
+        cout << "Por favor, intente nuevamente.\n";
+        reservarAlojamiento(h); // Llamado recursivo para reintentar
     }
-
-    if (!aloj) {
-        cout << "Alojamiento no encontrado.\n";
-        return;
-    }
-
-    if (!aloj->estaDisponible(entrada, dur)) {
-        cout << "El alojamiento no está disponible.\n";
-        return;
-    }
-
-    // Pedir pago
-    string metodo;
-    cout << "Metodo de pago" << "\n";
-    cout << "1. PSE" << "\n";
-    cout << "2. TCredito" << "\n";
-    cout << "Opción: ";
-    cin >> ws;
-    getline(cin, metodo);
-    if (metodo != "1" && metodo != "2"){
-        cout << "Opción inválida. Reserva cancelada.\n";
-        return;
-    }
-    if (metodo == "1"){
-        metodo = "PSE";
-    } else{
-        metodo = "TCredito";
-    }
-
-    // Pedir anotación
-    string nota;
-    cout << "Ingrese anotación (max 1000 chars): ";
-    cin >> ws;
-    getline(cin, nota);
-    /*
-    // Generar los datos de la reserva
-    string codigo = "RSV" + to_string(cantReservas + 1);
-    Fecha fechaPago = entrada; // Simulación de pago en fecha de entrada
-    float monto = dur * aloj->getPrecio();
-    */
-    // ... justo antes de crear la Reserva
-    std::ostringstream oss;
-    oss << "RSV" << std::setw(3) << std::setfill('0') << siguienteNumeroReserva++;
-    string codigo = oss.str();
-    Fecha fechaPago = getFechaSistema();
-    float monto = dur * aloj->getPrecioNoche();
-
-    // 1) Creamos la reserva en HEAP para construirla:
-    Reserva* nueva = new Reserva(codigo, aloj, h, entrada, dur, metodo, fechaPago, monto, nota);
-
-    // 2) Comprobamos conflictos en el huesped con NUEVA:
-    if (h->hayConflicto(entrada, dur)) {
-        cout << "El huésped ya tiene una reserva en esas fechas.\n";
-        delete nueva;
-        return;
-    }
-
-    // 3) Aseguramos capacidad y copiamos en tu array principal:
-    void asegurarCapacidadReservas();
-    reservas[cantReservas] = *nueva;   // copia "por valor" dentro de tu buffer
-
-    // 4) INSERTAMOS sólo una vez EN EL HUESPED:
-    h->agregarReserva(&reservas[cantReservas]);
-
-    // 5) Marcamos los días en el alojamiento:
-    aloj->reservarDias(entrada, dur);
-
-    // 6) Avanzamos el contador:
-    cantReservas++;
-
-    // 7) Guardamos en disco:
-    this->guardarReservaIndividual(reservas[cantReservas - 1]);
-
-    // 8) Limpieza del temporal:
-    delete nueva;
-
-    // Mostrar comprobante usando método encapsulado
-    reservas[cantReservas - 1].mostrarComprobante();
 }
 
+/**
+ * @brief Retorna el siguiente número entero disponible para generar el código de una nueva reserva.
+ * @return El número consecutivo a partir de la última reserva leída.
+ */
 int Controlador::obtenerSiguienteNumeroReserva(){
     ifstream archivo("reservas.txt");
     if (!archivo.is_open()) return 1;
@@ -505,8 +656,23 @@ int Controlador::obtenerSiguienteNumeroReserva(){
     return numero + 1;
 }
 
+/**
+ * @brief Anula una reserva específica del sistema, ya sea solicitada por un huésped
+ *        o por un anfitrión (según el contexto del menú).
+ *
+ * Se actualizan:
+ * - Las reservas del huésped (eliminando la reserva).
+ * - Las fechas ocupadas del alojamiento (liberando los días).
+ * - El arreglo principal de reservas (eliminando la entrada).
+ * - El archivo de texto `reservas.txt` (reescribiéndolo completo).
+ *
+ * @param codigo Código único de la reserva a anular.
+ * @param h Puntero al huésped (si es quien solicita la anulación). Puede ser nullptr.
+ * @param a Puntero al anfitrión (si es quien solicita la anulación). Puede ser nullptr.
+ */
 void Controlador::anularReservacion(const string& codigo, Huesped* h, Anfitrion* a) {
     for (int i = 0; i < cantReservas; ++i) {
+        totalIteraciones++;
         if (reservas[i].getCodigo() == codigo) {
             bool autorizado = false;
             Huesped* h_afectado = nullptr;
@@ -526,11 +692,11 @@ void Controlador::anularReservacion(const string& codigo, Huesped* h, Anfitrion*
 
             // Eliminar del huésped
             if (h_afectado)
-                //h_afectado->eliminarReservaPorCodigo(codigo);
+                h_afectado->eliminarReservaPorCodigo(codigo);
 
-                // Compactar arreglo global de reservas
-                for (int j = i; j < cantReservas - 1; ++j)
-                    reservas[j] = reservas[j + 1];
+            // Compactar arreglo global de reservas
+            for (int j = i; j < cantReservas - 1; ++j)
+                reservas[j] = reservas[j + 1];
             cantReservas--;
 
             // Reparar punteros internos del huésped (opcional si ya se eliminó la reserva)
@@ -546,6 +712,9 @@ void Controlador::anularReservacion(const string& codigo, Huesped* h, Anfitrion*
     cout << "Reservación no encontrada.\n";
 }
 
+/**
+ * @brief Muestra todas las reservas almacenadas en el sistema.
+ */
 void Controlador::mostrarHistorico() {
     std::ifstream archivo("historico_reservas.txt");
     if (!archivo.is_open()) {
@@ -565,12 +734,19 @@ void Controlador::mostrarHistorico() {
     if (contador == 1) std::cout << "No hay reservas históricas registradas.\n";
 }
 
+/**
+ * @brief Guarda una reserva individual en el archivo "reservas.txt".
+ *
+ * El formato del archivo es de texto delimitado por `;`, incluyendo:
+ * código, alojamiento, huésped, fechas, método de pago, monto y anotación.
+ * Usa modo binario para evitar corrupción de caracteres.
+ *
+ * @param r Referencia a la reserva que se desea persistir.
+ */
 void Controlador::guardarReservaIndividual(const Reserva& r) {
-    // (Opcional) Forzar entorno a usar UTF-8
-    std::setlocale(LC_ALL, ""); // Sistema lo define, o usa "es_ES.UTF-8" si es Linux/Mac
 
     // Abrir archivo en modo binario para evitar corrupción de caracteres
-    std::ofstream archivo("reservas.txt", std::ios::app | std::ios::binary);
+    std::ofstream archivo("reservas.txt", std::ios::app);
     if (!archivo.is_open()) {
         std::cout << "Error al guardar la reserva en archivo.\n";
         return;
@@ -593,6 +769,10 @@ void Controlador::guardarReservaIndividual(const Reserva& r) {
     archivo.close();
 }
 
+/**
+ * @brief Sobrescribe completamente el archivo reservas.txt con todas las reservas actuales.
+ *        Se utiliza típicamente tras una depuración del histórico.
+ */
 void Controlador::sobrescribirArchivoReservas() {
     std::ofstream archivo("reservas.txt");
     if (!archivo.is_open()) {
@@ -627,6 +807,10 @@ void Controlador::sobrescribirArchivoReservas() {
     archivo.close();
 }
 
+/**
+ * @brief Elimina todas las reservas cuya fecha de entrada es menor a una fecha de corte dada.
+ * @param fechaCorte Fecha límite para conservar las reservas.
+ */
 void Controlador::depurarReservas(const Fecha& fechaCorte) {
     std::ofstream archivo("historico_reservas.txt", std::ios::app);
     if (!archivo.is_open()) {
@@ -660,7 +844,11 @@ void Controlador::depurarReservas(const Fecha& fechaCorte) {
     archivo.close();
 }
 
-
+/**
+ * @brief Destructor del controlador.
+ *
+ * Libera la memoria dinámica utilizada por los arreglos de reservas, huéspedes, alojamientos y anfitriones.
+ */
 Controlador::~Controlador() {
     delete[] reservas;
     delete[] huespedes;
